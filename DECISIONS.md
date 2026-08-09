@@ -30,16 +30,17 @@ Given the small dataset and timebox, I did not add:
 
 These would add complexity without providing much value for this dataset.
 
-## How I'd know it works
+## How I tested and would evaluate it
 
-I would evaluate:
-
-* **Retrieval:** whether the correct document is retrieved (Recall@K / Precision@K).
-* **Generation:** answer correctness and groundedness.
-* **Refusal:** whether unsupported questions are correctly rejected.
-* **Citations:** whether the cited document actually supports the answer.
-
-I would create a small labelled evaluation set of representative questions and use it to tune the retrieval threshold.
+- Tested the application in a clean Docker environment using a fresh image build (`--no-cache`).
+- Verified the `/health` endpoint and the complete `/ask` RAG pipeline, including retrieval and answer generation.
+- Added a smoke test covering both a document-supported and a document-unsupported question.
+- For a larger evaluation set, I would measure:
+  - **Retrieval:** whether the correct document is retrieved (Recall@K / Precision@K).
+  - **Generation:** answer correctness and groundedness.
+  - **Refusal:** whether unsupported questions are correctly rejected.
+  - **Citations:** whether the cited document actually supports the answer.
+- I would create a small labelled evaluation set of representative questions and use it to tune the retrieval threshold.
 
 ## With more time / to take it to production
 
