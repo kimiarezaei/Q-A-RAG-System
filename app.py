@@ -1,69 +1,117 @@
-"""
-Lumen Audio — grounded Q&A over a knowledge base.
-
-This skeleton runs as-is and returns a stub response. Your job is to fill in the
-RAG logic where marked TODO:
-  1. chunk + index the documents in data/
-  2. retrieve the most relevant chunk(s) for a question
-  3. generate a grounded answer WITH a citation to the source file
-  4. decline gracefully when the question isn't covered by the KB
-
-Helpers for embeddings and chat completion are in llm.py.
-Run with:  python app.py
-"""
-
 import os
-import glob
+
 from flask import Flask, request, jsonify
 
-import llm  # embed() and complete() — see llm.py
+from src.rag import answer_question
+from src.vector_store import build_index
+from utils.logger import get_logger
+
 
 app = Flask(__name__)
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+logger = get_logger(__name__)
+
+DATA_DIR = os.path.join(
+    os.path.dirname(__file__),
+    "data"
+)
 
 
-def load_documents():
-    """Load every markdown article in data/ as (source_name, text)."""
-    docs = []
-    for path in sorted(glob.glob(os.path.join(DATA_DIR, "*.md"))):
-        with open(path, "r", encoding="utf-8") as f:
-            docs.append((os.path.basename(path), f.read().strip()))
-    return docs
+def load_documents() -> list[dict]:
+    """
+    Load Markdown documents while preserving their filenames
+    for source attribution.
+    """
+
+    documents = []
+
+    for filename in sorted(os.listdir(DATA_DIR)):
+        if not filename.endswith(".md"):
+            continue
+
+        path = os.path.join(DATA_DIR, filename)
+
+        with open(path, "r", encoding="utf-8") as file:
+            text = file.read().strip()
+
+        documents.append(
+            {
+                "source": filename,
+                "text": text,
+            }
+        )
+
+        logger.info("Loaded document: %s", filename)
+
+    return documents
 
 
-# Load once at startup. The candidate decides how to chunk/index from here.
-DOCUMENTS = load_documents()
 
-# TODO: build your index here (chunk the documents, embed them with llm.embed(),
-# and keep the vectors in memory — numpy is fine).
+def initialize_application():
+    """
+    Load documents and build the vector index.
+    """
+
+    documents = load_documents()
+
+    logger.info(
+        "Loaded %d documents.",
+        len(documents)
+    )
+
+    build_index(
+        documents,
+        force_rebuild=False
+    )
 
 
 @app.route("/health")
 def health():
-    return jsonify({"ok": True, "documents_loaded": len(DOCUMENTS)})
+    return jsonify({
+        "ok": True
+    })
 
 
 @app.route("/ask", methods=["POST"])
 def ask():
-    payload = request.get_json(silent=True) or {}
-    question = (payload.get("question") or "").strip()
-    if not question:
-        return jsonify({"error": "send JSON like {\"question\": \"...\"}"}), 400
 
-    # ------------------------------------------------------------------
-    # TODO: replace this stub with real retrieval-augmented generation.
-    #   - retrieve the most relevant chunk(s) for `question`
-    #   - if nothing is relevant enough, return an "I don't know" response
-    #   - otherwise call llm.complete(...) to answer using ONLY the retrieved
-    #     context, and return the source filename as the citation
-    # ------------------------------------------------------------------
-    return jsonify({
-        "answer": "Not implemented yet — this is the stub.",
-        "sources": [],
-        "available_sources": [name for name, _ in DOCUMENTS],
-    })
+    payload = request.get_json(
+        silent=True
+    ) or {}
+
+    question = (
+        payload.get("question") or ""
+    ).strip()
+
+    if not question:
+        return jsonify({
+            "error": 'send JSON like {"question": "..."}'
+        }), 400
+
+    try:
+        answer = answer_question(
+            question
+        )
+
+        return jsonify(answer)
+
+    except Exception:
+        logger.exception(
+            "Question answering failed"
+        )
+
+        return jsonify({
+            "error": "Internal server error"
+        }), 500
+
+
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+
+    initialize_application()
+
+    app.run(
+        host="0.0.0.0",
+        port=5000
+    )

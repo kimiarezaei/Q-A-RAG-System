@@ -65,6 +65,7 @@ def main():
             print("[pass] out-of-KB question declined (empty sources)")
         else:
             print("[warn] expected empty 'sources' — the guardrail may be leaking")
+
             ok = False
     except Exception as e:
         print("[FAIL] out-of-KB question errored:", e)

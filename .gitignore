@@ -1,7 +1,43 @@
+# Environment / secrets
 .env
+.env.*
+!.env.example
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
 venv/
+*.egg-info/
+
+# IDE
 .idea/
 .vscode/
+
+# Logs / cache / test artifacts
+logs/
+cache/
+.cache/
+.pytest_cache/
+.coverage
+coverage/
+
+# Local vector database
+chromadb_*/
+*.db
+*.sqlite
+
+# Models / large files
+models/
+*.pt
+*.bin
+*.ckpt
+
+# Build / packaging
+build/
+dist/
+pip-wheel-metadata/
+
+# OS
+.DS_Store
+Thumbs.db
