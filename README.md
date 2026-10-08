@@ -1,6 +1,4 @@
-# AI Engineer Assessment — Grounded Q&A
-
-A small RAG-based Q&A service over the Lumen Audio knowledge base.
+# RAG-based Q&A service
 
 The application:
 
